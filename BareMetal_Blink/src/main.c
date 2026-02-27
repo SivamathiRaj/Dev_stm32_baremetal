@@ -26,29 +26,21 @@ typedef struct
     volatile uint32_t ARR;   
 } TIM_TypeDef;
 
-#define PORTC ((GPIO_TypeDef *)0x40011000)
-#define TIM2  ((TIM_TypeDef *)0x40000000)
-
-void timer2_init(void);
-void delay_us(uint16_t us);
-void delay_ms(uint16_t ms);
-
-int main(void)
+typedef struct
 {
-   
-        timer2_init();
+    volatile uint32_t SR;   // Status Register
+    volatile uint32_t DR;   // Data Register
+    volatile uint32_t BRR;  // Baud Rate Register
+    volatile uint32_t CR1;  // Control Register 1
+    volatile uint32_t CR2;  // Control Register 2
+    volatile uint32_t CR3;  // Control Register 3
+    volatile uint32_t GTPR; // Guard Time and Prescaler Register
+} USART_TypeDef;
 
-        RCC_APB2ENR |= (1 << 4);
-        PORTC->CRH &= ~(0xF << 20);
-        PORTC->CRH |=  (0x2 << 20);
-
-        while (1)
-        {
-            PORTC->ODR ^= (1 << 13);
-            delay_ms(1000);
-        }
-
-}
+#define PORTC ((GPIO_TypeDef *)0x40011000)
+#define PORTA ((GPIO_TypeDef *)0x40010800)
+#define TIM2  ((TIM_TypeDef *)0x40000000)
+#define USART1 ((USART_TypeDef*)0x40013800)
 
 void timer2_init(void)
 {
@@ -70,4 +62,36 @@ void delay_ms(uint16_t ms)
     {
         delay_us(1000); 
     }
+}
+
+void uart1_init(void)
+{
+    RCC_APB2ENR |= (1 << 2) | (1 << 14); 
+    PORTA->CRH &= ~(0xF << 4);
+    PORTA->CRH |=  (0xB << 4);
+    USART1->BRR = 0x0341;
+    USART1->CR1 |= (1 << 13) | (1 << 3);      
+}
+
+void uart1_send_char(char c)
+{
+    while (!(USART1->SR & (1 << 7))); 
+    USART1->DR = c; 
+}
+
+int main(void)
+{
+        uart1_init();
+        timer2_init();
+
+        RCC_APB2ENR |= (1 << 4);
+        PORTC->CRH &= ~(0xF << 20);
+        PORTC->CRH |=  (0x2 << 20);
+
+        while (1)
+        {
+            PORTC->ODR ^= (1 << 13);
+            delay_ms(1000);
+        }
+
 }
